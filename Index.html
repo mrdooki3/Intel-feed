@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intel Feed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+```
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3A3530; }
+
+body {
+  font-family: 'DM Mono', 'Courier New', monospace;
+  color: #E2E4E8;
+  min-height: 100vh;
+  background-color: #0F0D0B;
+  background-image:
+    linear-gradient(45deg, #141210 25%, transparent 25%),
+    linear-gradient(-45deg, #141210 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #141210 75%),
+    linear-gradient(-45deg, transparent 75%, #141210 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0px;
+}
+
+a { text-decoration: none; color: inherit; }
+a:hover { text-decoration: underline; }
+
+/* HEADER */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13,11,9,0.97);
+  border-bottom: 1px solid #2A2520;
+  padding: 0 20px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left { display: flex; align-items: center; gap: 14px; }
+
+#status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #4A9B7F;
+  box-shadow: 0 0 6px #4A9B7Faa;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+#status-dot.loading {
+  background: #C8A951;
+  box-shadow: 0 0 6px #C8A951aa;
+  animation: blink 1.2s step-end infinite;
+}
+
+#logo { height: 44px; display: block; }
+
+.header-right { display: flex; align-items: center; gap: 14px; }
+
+#status-text { font-size: 9px; color: #C8A951; letter-spacing: 0.07em; display: none; }
+#status-text.visible { display: block; }
+#last-refresh { font-size: 9px; color: #3A3028; letter-spacing: 0.07em; }
+
+.refresh-btn {
+  background: transparent;
+  border: 1px solid #2A2520;
+  color: #5A5248;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 5px 10px;
+  letter-spacing: 0.08em;
+  transition: all 0.15s;
+}
+.refresh-btn:hover:not(:disabled) { border-color: #5A5248; color: #9A8F84; background: rgba(42,37,32,0.4); }
+.refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* CHECKER DIVIDER */
+.checker-divider {
+  height: 6px;
+  background-image:
+    linear-gradient(45deg, #2A2520 25%, transparent 25%),
+    linear-gradient(-45deg, #2A2520 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #2A2520 75%),
+    linear-gradient(-45deg, transparent 75%, #2A2520 75%);
+  background-size: 6px 6px;
+  background-position: 0 0, 0 3px, 3px -3px, -3px 0px;
+  background-color: #1A1714;
+  opacity: 0.7;
+}
+
+/* TABS */
+nav {
+  border-bottom: 1px solid #2A2520;
+  background: rgba(13,11,9,0.88);
+  padding: 0 20px;
+  display: flex;
+  overflow-x: auto;
+  gap: 2px;
+}
+nav::-webkit-scrollbar { height: 0; }
+
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-weight: 400;
+  color: #5A5248;
+  padding: 12px 14px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn.active { font-weight: 700; }
+
+.tab-count {
+  margin-left: 5px;
+  font-size: 9px;
+  background: #2A2520;
+  padding: 1px 4px;
+  color: #5A5248;
+  font-weight: 400;
+}
+
+/* MAIN */
+main { padding: 20px; max-width: 960px; margin: 0 auto; }
+
+/* CARDS */
+.feed-list { display: flex; flex-direction: column; gap: 6px; }
+
+.card {
+  background: rgba(22,19,16,0.92);
+  border: 1px solid #2A2520;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px; height: 4px;
+  background: #3A3530;
+}
+.card:hover { border-color: #4A4035; background: rgba(28,24,20,0.95); }
+
+.card-inner { padding: 13px 16px; }
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  flex-wrap: wrap;
+}
+.card-category { font-size: 9px; letter-spacing: 0.12em; font-weight: 500; text-transform: uppercase; }
+.card-dot { color: #2A2018; }
+.card-source { font-size: 9px; color: #5A5248; }
+.card-time { font-size: 9px; color: #5A5248; }
+
+.card-title-row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.card-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #C8CAD0;
+  letter-spacing: 0.02em;
+  flex: 1;
+}
+.card-arrow {
+  color: #3A3528;
+  font-size: 9px;
+  flex-shrink: 0;
+  margin-top: 3px;
+  transition: transform 0.2s;
+}
+.card-arrow.open { transform: rotate(180deg); }
+
+.card-expanded {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #2A2520;
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+.card-expanded.visible { display: block; }
+
+.card-desc {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #6A6F7A;
+  margin-bottom: 14px;
+  font-style: italic;
+}
+.card-link {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  padding: 5px 10px;
+  display: inline-block;
+  border-radius: 2px;
+}
+
+/* EMPTY STATE */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: #3A3028;
+  display: none;
+}
+.empty-state.visible { display: block; }
+.empty-icon { font-size: 28px; margin-bottom: 14px; opacity: 0.4; }
+.empty-label { font-size: 11px; letter-spacing: 0.12em; }
+.empty-sub { font-size: 10px; margin-top: 8px; color: #2A2018; }
+
+/* FOOTER */
+.feed-footer {
+  margin-top: 32px;
+  padding-top: 14px;
+  border-top: 1px solid #2A2520;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.feed-footer span { font-size: 9px; color: #2A2018; letter-spacing: 0.08em; }
+
+/* ANIMATIONS */
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 600px) {
+  .tab-label { font-size: 10px; }
+}
+```
+
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <div id="status-dot"></div>
+      <img id="logo" src="logo.png" alt="Intel Feed" />
+    </div>
+    <div class="header-right">
+      <span id="status-text">FETCHING...</span>
+      <span id="last-refresh"></span>
+      <button class="refresh-btn" id="refresh-btn" onclick="fetchAll()">↻ REFRESH</button>
+    </div>
+  </header>
+
+  <div class="checker-divider"></div>
+
+  <nav id="tab-nav"></nav>
+
+  <main>
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">◌</div>
+      <div class="empty-label">NO ITEMS LOADED</div>
+      <div class="empty-sub">Feed sources may be temporarily unavailable</div>
+      <button class="refresh-btn" style="margin-top:20px" onclick="fetchAll()">↻ TRY AGAIN</button>
+    </div>
+    <div class="feed-list" id="feed-list"></div>
+    <div class="feed-footer" id="feed-footer" style="display:none">
+      <span>YORK-POQUOSON SHERIFF'S OFFICE — INTERNAL USE</span>
+      <span id="item-count"></span>
+    </div>
+  </main>
+
+  <script>
+    const RSS2JSON = "https://api.rss2json.com/v1/api.json?rss_url=";
+
+    const FEEDS = [
+      {
+        id: "va_courts", label: "Virginia Courts", icon: "⚖", color: "#C8A951",
+        sources: [
+          { name: "SCOTUS Blog", url: "https://www.scotusblog.com/feed/" },
+          { name: "Crime & Consequences", url: "https://crimeandconsequences.blog/?feed=rss2" },
+          { name: "Justia Federal Courts", url: "https://cases.justia.com/rss/federal-courts" },
+        ]
+      },
+      {
+        id: "fourth_amendment", label: "4th Amendment", icon: "🔍", color: "#5B8DD9",
+        sources: [
+          { name: "SCOTUS Blog", url: "https://www.scotusblog.com/feed/" },
+          { name: "Volokh Conspiracy", url: "https://reason.com/volokh/feed/" },
+          { name: "Cop in the Hood", url: "https://copinthehood.com/feed" },
+        ]
+      },
+      {
+        id: "doj_fbi", label: "DOJ & FBI", icon: "🏛", color: "#4A9B7F",
+        sources: [
+          { name: "DOJ News", url: "https://www.justice.gov/feeds/opa/justice-news.xml" },
+          { name: "FBI Press Releases", url: "https://www.fbi.gov/feeds/national-press-releases/RSS" },
+          { name: "FBI Stories", url: "https://www.fbi.gov/news/stories/RSS" },
+        ]
+      },
+      {
+        id: "active_threat", label: "Active Threat", icon: "⚡", color: "#C85A5A",
+        sources: [
+          { name: "POLICE Magazine", url: "https://www.policemag.com/rss" },
+          { name: "PoliceOne", url: "https://www.policeone.com/rss/" },
+          { name: "Gov Tech Safety", url: "https://govtech.com/em/safety.rss" },
+        ]
+      },
+      {
+        id: "leadership", label: "Leadership", icon: "◈", color: "#9B6DB5",
+        sources: [
+          { name: "Improving Police", url: "https://improvingpolice.blog/feed" },
+          { name: "Law Officer", url: "https://lawofficer.com/feed/" },
+          { name: "PoliceOne", url: "https://www.policeone.com/rss/" },
+        ]
+      }
+    ];
+
+    let feedData = {};
+    let loadingCount = 0;
+    let activeTab = "all";
+    let expandedItem = null;
+
+    function timeAgo(dateStr) {
+      if (!dateStr) return "";
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d)) return "";
+        const diff = (Date.now() - d) / 1000 / 60;
+        if (diff < 60) return Math.round(diff) + "m ago";
+        if (diff < 1440) return Math.round(diff / 60) + "h ago";
+        if (diff < 10080) return Math.round(diff / 1440) + "d ago";
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      } catch { return ""; }
+    }
+
+    function stripHtml(str) {
+      if (!str) return "";
+      return str.replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    function setLoading(isLoading) {
+      const dot = document.getElementById("status-dot");
+      const statusText = document.getElementById("status-text");
+      const btn = document.getElementById("refresh-btn");
+      if (isLoading) {
+        dot.classList.add("loading");
+        statusText.classList.add("visible");
+        btn.disabled = true;
+      } else {
+        dot.classList.remove("loading");
+        statusText.classList.remove("visible");
+        btn.disabled = false;
+        const now = new Date();
+        document.getElementById("last-refresh").textContent =
+          now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      }
+    }
+
+    async function fetchCategory(category) {
+      loadingCount++;
+      setLoading(true);
+      let allItems = [];
+
+      for (const source of category.sources) {
+        try {
+          const url = RSS2JSON + encodeURIComponent(source.url) + "&count=8";
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 12000);
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeout);
+          const data = await res.json();
+          if (data.status === "ok" && data.items) {
+            data.items.forEach(item => {
+              allItems.push({
+                title: item.title || "",
+                link: item.link || "",
+                desc: stripHtml(item.description || item.content || "").slice(0, 220),
+                pubDate: item.pubDate || "",
+                source: source.name,
+              });
+            });
+          }
+        } catch (e) { /* silent fail */ }
+      }
+
+      // Deduplicate
+      const seen = new Set();
+      allItems = allItems.filter(item => {
+        const key = item.title.slice(0, 60).toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+      feedData[category.id] = allItems;
+
+      // Update tab count badge
+      const tabBtn = document.querySelector(`[data-tab="${category.id}"]`);
+      if (tabBtn) {
+        const badge = tabBtn.querySelector(".tab-count");
+        if (badge) badge.textContent = allItems.length;
+      }
+
+      loadingCount--;
+      if (loadingCount === 0) {
+        setLoading(false);
+        renderFeed();
+      }
+    }
+
+    function fetchAll() {
+      feedData = {};
+      loadingCount = 0;
+      expandedItem = null;
+      FEEDS.forEach(fetchCategory);
+    }
+
+    function getDisplayItems() {
+      if (activeTab === "all") {
+        let items = [];
+        FEEDS.forEach(f => {
+          (feedData[f.id] || []).slice(0, 4).forEach(item => {
+            items.push({ ...item, category: f });
+          });
+        });
+        return items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+      } else {
+        const cat = FEEDS.find(f => f.id === activeTab);
+        return (feedData[activeTab] || []).map(item => ({ ...item, category: cat }));
+      }
+    }
+
+    function renderFeed() {
+      const items = getDisplayItems();
+      const list = document.getElementById("feed-list");
+      const empty = document.getElementById("empty-state");
+      const footer = document.getElementById("feed-footer");
+      const itemCount = document.getElementById("item-count");
+
+      list.innerHTML = "";
+
+      if (items.length === 0) {
+        empty.classList.add("visible");
+        footer.style.display = "none";
+        return;
+      }
+
+      empty.classList.remove("visible");
+      footer.style.display = "flex";
+      itemCount.textContent = items.length + " ITEMS";
+
+      items.forEach((item, idx) => {
+        const key = item.category.id + "-" + idx;
+        const isOpen = expandedItem === key;
+
+        const article = document.createElement("article");
+        article.className = "card";
+        article.onclick = () => toggleExpand(key);
+
+        const timeStr = item.pubDate ? `<span class="card-dot">·</span><span class="card-time">${timeAgo(item.pubDate)}</span>` : "";
+        const descHtml = item.desc
+          ? `<p class="card-desc">${item.desc}${item.desc.length >= 218 ? "…" : ""}</p>`
+          : "";
+        const linkHtml = item.link
+          ? `<a class="card-link" href="${item.link}" target="_blank" rel="noopener noreferrer"
+               style="color:${item.category.color};border:1px solid ${item.category.color}28"
+               onclick="event.stopPropagation()">OPEN ARTICLE →</a>`
+          : "";
+
+        article.innerHTML = `
+          <div class="card-inner">
+            <div class="card-meta">
+              <span class="card-category" style="color:${item.category.color}">${item.category.icon} ${item.category.label}</span>
+              <span class="card-dot">·</span>
+              <span class="card-source">${item.source}</span>
+              ${timeStr}
+            </div>
+            <div class="card-title-row">
+              <div class="card-title">${item.title}</div>
+              <div class="card-arrow ${isOpen ? "open" : ""}">▼</div>
+            </div>
+            <div class="card-expanded ${isOpen ? "visible" : ""}">
+              ${descHtml}
+              ${linkHtml}
+            </div>
+          </div>
+        `;
+
+        list.appendChild(article);
+      });
+    }
+
+    function toggleExpand(key) {
+      expandedItem = expandedItem === key ? null : key;
+      renderFeed();
+    }
+
+    function buildTabs() {
+      const nav = document.getElementById("tab-nav");
+      const allTabs = [{ id: "all", label: "All", icon: "▦", color: "#E2E4E8" }, ...FEEDS];
+
+      allTabs.forEach(f => {
+        const btn = document.createElement("button");
+        btn.className = "tab-btn" + (f.id === activeTab ? " active" : "");
+        btn.setAttribute("data-tab", f.id);
+        btn.style.color = f.id === activeTab ? f.color : "#5A5248";
+        btn.style.borderBottomColor = f.id === activeTab ? f.color : "transparent";
+
+        const countBadge = f.id !== "all"
+          ? `<span class="tab-count">${(feedData[f.id] || []).length || ""}</span>`
+          : "";
+
+        btn.innerHTML = `<span style="margin-right:5px">${f.icon}</span><span class="tab-label">${f.label.toUpperCase()}</span>${countBadge}`;
+
+        btn.onclick = () => {
+          activeTab = f.id;
+          expandedItem = null;
+          document.querySelectorAll(".tab-btn").forEach(b => {
+            const tabId = b.getAttribute("data-tab");
+            const tabDef = allTabs.find(t => t.id === tabId);
+            const isNowActive = tabId === activeTab;
+            b.classList.toggle("active", isNowActive);
+            b.style.color = isNowActive ? tabDef.color : "#5A5248";
+            b.style.borderBottomColor = isNowActive ? tabDef.color : "transparent";
+          });
+          renderFeed();
+        };
+
+        nav.appendChild(btn);
+      });
+    }
+
+    // Init
+    buildTabs();
+    fetchAll();
+  </script>
+
+</body>
+</html>
